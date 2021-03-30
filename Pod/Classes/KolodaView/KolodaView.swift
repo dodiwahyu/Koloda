@@ -53,6 +53,7 @@ public protocol KolodaViewDelegate: class {
     func koloda(_ koloda: KolodaView, shouldSwipeCardAt index: Int, in direction: SwipeResultDirection) -> Bool
     func koloda(_ koloda: KolodaView, didSwipeCardAt index: Int, in direction: SwipeResultDirection)
     func kolodaDidRunOutOfCards(_ koloda: KolodaView)
+    func koloda(_ koloda: KolodaView, shouldSelectCardAt index: Int, recognizer: UITapGestureRecognizer) -> Bool
     func koloda(_ koloda: KolodaView, didSelectCardAt index: Int)
     func kolodaShouldApplyAppearAnimation(_ koloda: KolodaView) -> Bool
     func kolodaShouldMoveBackgroundCard(_ koloda: KolodaView) -> Bool
@@ -74,13 +75,14 @@ public extension KolodaViewDelegate {
     func koloda(_ koloda: KolodaView, allowedDirectionsForIndex index: Int) -> [SwipeResultDirection] { return [.left, .right] }
     func koloda(_ koloda: KolodaView, didSwipeCardAt index: Int, in direction: SwipeResultDirection) {}
     func kolodaDidRunOutOfCards(_ koloda: KolodaView) {}
+    func koloda(_ koloda: KolodaView, shouldSelectCardAt index: Int, recognizer: UITapGestureRecognizer) -> Bool { return true }
     func koloda(_ koloda: KolodaView, didSelectCardAt index: Int) {}
     func kolodaShouldApplyAppearAnimation(_ koloda: KolodaView) -> Bool { return true }
     func kolodaShouldMoveBackgroundCard(_ koloda: KolodaView) -> Bool { return true }
     func kolodaShouldTransparentizeNextCard(_ koloda: KolodaView) -> Bool { return true }
     func koloda(_ koloda: KolodaView, draggedCardWithPercentage finishPercentage: CGFloat, in direction: SwipeResultDirection) {}
     func kolodaDidResetCard(_ koloda: KolodaView) {}
-    func kolodaSwipeThresholdRatioMargin(_ koloda: KolodaView) -> CGFloat? { return nil }
+    func kolodaSwipeThresholdRatioMargin(_ koloda: KolodaView) -> CGFloat? { return nil}
     func koloda(_ koloda: KolodaView, didShowCardAt index: Int) {}
     func koloda(_ koloda: KolodaView, didRewindTo index: Int) {}
     func koloda(_ koloda: KolodaView, shouldDragCardAt index: Int ) -> Bool { return true }
@@ -367,11 +369,14 @@ open class KolodaView: UIView, DraggableCardDelegate {
         delegate?.kolodaDidResetCard(self)
     }
     
-    func card(cardWasTapped card: DraggableCardView) {
+    func card(cardWasTapped card: DraggableCardView, recognizer: UITapGestureRecognizer) {
         guard let visibleIndex = visibleCards.firstIndex(of: card) else { return }
-        
         let index = currentCardIndex + visibleIndex
-        delegate?.koloda(self, didSelectCardAt: index)
+        
+        /// Check if card can selected
+        if delegate?.koloda(self, shouldSelectCardAt: index, recognizer: recognizer) ?? true {
+            delegate?.koloda(self, didSelectCardAt: index)
+        }
     }
     
     func card(cardSwipeThresholdRatioMargin card: DraggableCardView) -> CGFloat? {
@@ -596,9 +601,7 @@ open class KolodaView: UIView, DraggableCardDelegate {
     
     public func reloadData() {
         guard let numberOfCards = dataSource?.kolodaNumberOfCards(self), numberOfCards > 0 else {
-            countOfCards = 0
             clear()
-            
             return
         }
         

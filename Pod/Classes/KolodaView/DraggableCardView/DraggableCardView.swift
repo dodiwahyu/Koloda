@@ -22,7 +22,7 @@ protocol DraggableCardDelegate: class {
     func card(_ card: DraggableCardView, wasSwipedIn direction: SwipeResultDirection)
     func card(_ card: DraggableCardView, shouldSwipeIn direction: SwipeResultDirection) -> Bool
     func card(cardWasReset card: DraggableCardView)
-    func card(cardWasTapped card: DraggableCardView)
+    func card(cardWasTapped card: DraggableCardView, recognizer: UITapGestureRecognizer)
     func card(cardSwipeThresholdRatioMargin card: DraggableCardView) -> CGFloat?
     func card(cardAllowedDirections card: DraggableCardView) -> [SwipeResultDirection]
     func card(cardShouldDrag card: DraggableCardView) -> Bool
@@ -67,12 +67,7 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     private var tapGestureRecognizer: UITapGestureRecognizer!
     private var animationDirectionY: CGFloat = 1.0
     private var dragDistance = CGPoint.zero
-    
-    private var swipePercentageMargin: CGFloat {
-        let percentage = delegate?.card(cardSwipeThresholdRatioMargin: self) ?? 0.0
-        
-        return percentage != 0.0 ? percentage : 1.0
-    }
+    private var swipePercentageMargin: CGFloat = 0.0
 
     
     //MARK: Lifecycle
@@ -89,6 +84,16 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
+    }
+    
+    override public var frame: CGRect {
+        didSet {
+            if let ratio = delegate?.card(cardSwipeThresholdRatioMargin: self) , ratio != 0 {
+                swipePercentageMargin = ratio
+            } else {
+                swipePercentageMargin = 1.0
+            }
+        }
     }
     
     deinit {
@@ -285,7 +290,7 @@ public class DraggableCardView: UIView, UIGestureRecognizerDelegate {
     }
     
     @objc func tapRecognized(_ recogznier: UITapGestureRecognizer) {
-        delegate?.card(cardWasTapped: self)
+        delegate?.card(cardWasTapped: self, recognizer: recogznier)
     }
     
     //MARK: Private
